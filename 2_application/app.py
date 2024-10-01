@@ -21,7 +21,7 @@ def get_base64_encoded_image(image_path):
         return base64_string
 
 # Function to send a prompt to the Claude model
-def send_claude_request(image_path, instruction):
+def send_claude_request(image_path, instruction, model):
     image_data_base64 = get_base64_encoded_image(image_path)
     message_list = [
         {
@@ -32,14 +32,18 @@ def send_claude_request(image_path, instruction):
             ]
         }
     ]
-    # Make request to Claude (simulating API call structure)
-    # Note: The real endpoint would be used in practice.
     response = client.completions.create(
-        model="claude-3-opus-20240229",
+        model=model,
         messages=message_list,
         max_tokens_to_sample=1000
     )
     return response.completion
+
+# Function to dynamically fetch available models
+def get_available_models():
+    # Assuming the client has a method to list available models
+    models = client.models.list()
+    return [model['name'] for model in models]
 
 # Define the tabs
 tab1, tab2, tab3 = st.tabs(["Use Cases", "Upload Image", "About"])
@@ -54,7 +58,8 @@ with tab1:
         "Transcribing Handwritten Text",
         "Transcribing Forms",
         "Complicated Document QA",
-        "Unstructured Information -> JSON"
+        "Unstructured Information -> JSON",
+        "User Defined"
     ]
     
     # Dropdown menu for selecting use cases
@@ -66,12 +71,22 @@ with tab1:
         "Transcribing Handwritten Text": "Transcribe this handwritten note.",
         "Transcribing Forms": "Transcribe this form exactly.",
         "Complicated Document QA": "Answer the questions based on this document.",
-        "Unstructured Information -> JSON": "Convert the content of this document to structured JSON."
+        "Unstructured Information -> JSON": "Convert the content of this document to structured JSON.",
+        "User Defined": ""
     }
+    
+    # Dynamically fetch the available models
+    available_models = get_available_models()
+    selected_model = st.selectbox("Choose a model:", available_models)
     
     # Allow user to choose or provide an image
     image_selection = st.radio("Choose an image:", ("Use uploaded image", "Use default image"))
-    instruction_text = instructions[selected_use_case]
+    
+    # Custom prompt input for "User Defined" use case
+    if selected_use_case == "User Defined":
+        instruction_text = st.text_area("Enter your prompt:", "")
+    else:
+        instruction_text = instructions[selected_use_case]
     
     # Image path to be used for processing
     image_path = None
@@ -94,13 +109,13 @@ with tab1:
             "Complicated Document QA": "./data/examples/ex4-doc_qa.png",
             "Unstructured Information -> JSON": "./data/examples/ex5-org_chart.jpeg"
         }
-        image_path = default_images[selected_use_case]
+        image_path = default_images.get(selected_use_case)
         st.image(image_path, caption="Default Image", use_column_width=True)
     
-    # Process the request if an image is selected
-    if image_path and st.button("Process with Claude"):
+    # Process the request if an image is selected and prompt is not empty
+    if image_path and instruction_text and st.button("Process with Claude"):
         # Send request to Claude and display the response
-        response = send_claude_request(image_path, instruction_text)
+        response = send_claude_request(image_path, instruction_text, selected_model)
         st.subheader("Claude's Response:")
         st.write(response)
 
