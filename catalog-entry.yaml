@@ -1,0 +1,22 @@
+name: Image Analysis with Anthropic's Claude LLM
+
+entries:
+  - title: Image Analysis with Anthropic's Claude LLM
+    label: anthropic-claude
+    short_description: |
+        Short description of what the AMP does.
+    long_description: |
+        Long description of what the AMP does.
+    long_description_html: |
+        Long description of what the AMP does.
+    image_path: >-
+      https://raw.githubusercontent.com/githubusername/githubrepo/main/path/to/amp/cover.png
+    tags:
+      - Sample
+      - Tags
+      - Used
+      - As
+      - Identifiers
+    git_url: 'https://github.com/githubusername/githubrepo'
+    is_prototype: true
+    is_new: true

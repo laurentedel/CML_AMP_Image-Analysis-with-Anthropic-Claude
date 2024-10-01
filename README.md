@@ -1,2 +1,4 @@
-# CML_AMP_Image-Analysis-with-Anthropic-Claude
+# Image Analysis with Anthropic's Claude LLM
 Convert images into text and summarize their content with Anthropic's Claude LLM
+
+
