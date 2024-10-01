@@ -27,9 +27,11 @@ tasks:
 
   - type: start_application
     name: Anthropic Claude Image Analysis
+    subdomain: anthropic-claude
+    script: 2_application/start-app.py
     short_summary: Streamlit application for image analysis with Anthropic's Claude LLM
     long_summary: Streamlit application for image analysis including extraction, transcription and summarization with Anthropic's Claude LLM
-    subdomain: anthropic-claude
-    script: 2_application/app.py
+    cpu: 2
+    memory: 8
     environment_variables:
       TASK_TYPE: START_APPLICATION
