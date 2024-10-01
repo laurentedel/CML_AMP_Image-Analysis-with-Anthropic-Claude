@@ -1,5 +1,5 @@
 name: Image Analysis with Anthropic's Claude LLM
-description: Convert images into text and summarize their content with Anthropic's Claude LLM
+description: Transcription and Information Extraction from Images with Anthropic Claude
 author: Cloudera, Inc.
 specification_version: 1.0
 prototype_version: 1.0
@@ -26,10 +26,10 @@ tasks:
     memory: 8
 
   - type: start_application
-    name: Application Name here
-    short_summary: Write a short summary of the app here.
-    long_summary: Write a longer summary about the app here.
-    subdomain: pick-a-domain-here
-    script: 2_app/app.py
+    name: Anthropic Claude Image Analysis
+    short_summary: Streamlit application for image analysis with Anthropic's Claude LLM
+    long_summary: Streamlit application for image analysis including extraction, transcription and summarization with Anthropic's Claude LLM
+    subdomain: anthropic-claude
+    script: 2_application/app.py
     environment_variables:
       TASK_TYPE: START_APPLICATION

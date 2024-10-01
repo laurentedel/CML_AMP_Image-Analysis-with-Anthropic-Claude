@@ -4,11 +4,9 @@ entries:
   - title: Image Analysis with Anthropic's Claude LLM
     label: anthropic-claude
     short_description: |
-        Short description of what the AMP does.
+        Transcription and Information Extraction from Images with Anthropic Claude
     long_description: |
-        Long description of what the AMP does.
-    long_description_html: |
-        Long description of what the AMP does.
+        Transcription and Information Extraction from Images with Anthropic Claude
     image_path: >-
       https://raw.githubusercontent.com/kevinbtalbert/CML_AMP_Image-Analysis-with-Anthropic-Claude/main/assets/catalog-entry.png
     tags:
@@ -17,6 +15,9 @@ entries:
       - Image Analysis
       - LLM
       - OCR
+      - Transcription
+      - Extraction
+      - Summarization
     git_url: 'https://github.com/kevinbtalbert/CML_AMP_Image-Analysis-with-Anthropic-Claude.git'
     is_prototype: true
     is_new: true
