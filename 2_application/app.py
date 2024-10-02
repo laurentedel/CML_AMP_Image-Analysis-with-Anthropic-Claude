@@ -21,7 +21,7 @@ def get_base64_encoded_image(image_path):
         return base64_string
 
 # Function to filter and return only image files from a directory
-def get_image_files(directory, extensions=("png", "jpg", "jpeg")):
+def get_image_files(directory, extensions=("png", "jpg", "jpeg", "gif", "webp")):
     return [f for f in os.listdir(directory) if f.lower().endswith(extensions) and os.path.isfile(os.path.join(directory, f))]
 
 # Display the default image with an option to enlarge and shrink
@@ -166,6 +166,9 @@ with tab1:
 
         # Variable to hold the selected image path
         image_path = None
+        # Initialize session state for the selected image if not already present
+        if 'selected_image' not in st.session_state:
+            st.session_state['selected_image'] = None
         
         if image_selection == "Use uploaded image":
             # Directory containing uploaded images
@@ -218,25 +221,30 @@ with tab2:
     upload_directory = "/home/cdsw/data"
     os.makedirs(upload_directory, exist_ok=True)
     
-    # Initialize session state to track uploaded file status
-    if 'file_uploaded' not in st.session_state:
-        st.session_state['file_uploaded'] = False
+    # Initialize session state to track uploaded file name
+    if 'uploaded_file_name' not in st.session_state:
+        st.session_state['uploaded_file_name'] = None
 
     # File uploader allowing only specific image types
     uploaded_file = st.file_uploader("Upload an image for transcription", type=["png", "jpg", "jpeg", "gif", "webp"])
 
-    # Save the uploaded image without rerunning the app
-    if uploaded_file and not st.session_state['file_uploaded']:
+    # Check if a file is uploaded and not already processed
+    if uploaded_file and uploaded_file.name != st.session_state['uploaded_file_name']:
         # Save the uploaded image to the directory
         file_path = os.path.join(upload_directory, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success(f"Image saved to {file_path}")
-        st.session_state['file_uploaded'] = True  # Mark as uploaded in session state
+        
+        # Update session state with the current file name
+        st.session_state['uploaded_file_name'] = uploaded_file.name
+        
+        # Trigger a UI refresh
+        st.rerun()
 
-    # Reset the `file_uploaded` state if no file is selected
+    # Clear the file name once the upload is completed or no file is selected
     if not uploaded_file:
-        st.session_state['file_uploaded'] = False
+        st.session_state['uploaded_file_name'] = None
 
     # Create two columns: one for listing images and action buttons, and one for rendering selected image
     col1, col2 = st.columns([1, 2])
@@ -276,7 +284,21 @@ with tab2:
                     if st.button("Delete", key=delete_button_key):
                         os.remove(image_path)
                         st.success(f"{image_file} has been deleted.")
+
+                        # Clear the selected image to avoid trying to display a deleted file
+                        if st.session_state.get('selected_image') == image_path:
+                            st.session_state['selected_image'] = None
+
+                        # Refresh the list of images after deletion
+                        image_files = get_image_files(upload_directory)
+
+                        # If no images are left, reset the selected image state
+                        if not image_files:
+                            st.session_state['selected_image'] = None
+
                         st.rerun()  # Refresh the UI after deletion
+
+
         else:
             st.info("No images found in the directory.")
     
