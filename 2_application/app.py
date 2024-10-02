@@ -20,138 +20,323 @@ def get_base64_encoded_image(image_path):
         base64_string = base_64_encoded_data.decode('utf-8')
         return base64_string
 
+# Function to filter and return only image files from a directory
+def get_image_files(directory, extensions=("png", "jpg", "jpeg")):
+    return [f for f in os.listdir(directory) if f.lower().endswith(extensions) and os.path.isfile(os.path.join(directory, f))]
+
+# Display the default image with an option to enlarge and shrink
+def display_image_with_enlarge_option(image_path, caption="Image"):
+    # Toggle state for enlarging/shrinking the image
+    key_prefix = caption.replace(" ", "_") + "_" + os.path.basename(image_path)
+    
+    # Initialize session state for image enlargement if not already present
+    if f"enlarged_{key_prefix}" not in st.session_state:
+        st.session_state[f"enlarged_{key_prefix}"] = False
+
+    # Set image dimensions based on toggle state
+    width = 200  # Small size
+    enlarged_width = width * 3  # Tripled size
+
+    # Display button to toggle enlarge/shrink
+    if st.session_state[f"enlarged_{key_prefix}"]:
+        st.image(image_path, caption=f"Enlarged {caption}", width=enlarged_width)
+        if st.button("Shrink Image", key=f"shrink_{key_prefix}"):
+            st.session_state[f"enlarged_{key_prefix}"] = False
+    else:
+        st.image(image_path, caption=f"Small {caption}", width=width)
+        if st.button("Enlarge Image", key=f"enlarge_{key_prefix}"):
+            st.session_state[f"enlarged_{key_prefix}"] = True
+
 # Function to send a prompt to the Claude model
 def send_claude_request(image_path, instruction, model):
     # Convert image to base64 string
     image_data_base64 = get_base64_encoded_image(image_path)
     
-    # Construct prompt for Claude model
-    prompt = f"Image data: {image_data_base64}\nInstruction: {instruction}"
+    HUMAN_PROMPT = "\n\nHuman:"
+    AI_PROMPT = "\n\nAssistant:"
     
-    # Send request to Claude model with all required parameters
-    response = client.completions.create(
+    # Format the prompt using HUMAN_PROMPT and AI_PROMPT
+    prompt = f"{HUMAN_PROMPT} Here is an image data encoded in base64 format:\n{image_data_base64}\nPlease perform the following instruction: {instruction}{AI_PROMPT}"
+    if image_path.endswith(".png"):
+        media_type = "image/png"
+
+    if image_path.endswith(".gif"):
+        media_type = "image/gif"
+        
+    if image_path.endswith(".jpeg"):
+        media_type = "image/jpeg"
+
+    if image_path.endswith(".webp"):
+        media_type = "image/webp"
+    
+    message_list = [
+        {
+            "role": 'user',
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": get_base64_encoded_image(image_path)}},
+                {"type": "text", "text": instruction}
+            ]
+        }
+    ]
+    
+    # Send request to Claude model using the updated syntax
+    response = client.messages.create(
         model=model,
-        prompt=prompt,
-        max_tokens_to_sample=1000,  # Adjust the token limit as needed
-        stream=False  # Change to True if streamed responses are desired
+        max_tokens=4096,
+        messages=message_list
     )
-    return response.completion
+    
+    return response.content[0].text
+
 
 # Function to dynamically fetch available models from the client
 def get_available_models():
-    # Assuming the client has a method to list available models
-    models = client.models.list()
-    return [model['name'] for model in models]
+    return ["claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
 
 # Define the three tabs for the Streamlit app
-tab1, tab2, tab3 = st.tabs(["Use Cases", "Upload Image", "About"])
+tab1, tab2, tab3 = st.tabs(["Use Cases for Anthropic Claude Models", "Upload and View Images", "About"])
 
 # Use Case Tab - Tab 1
 with tab1:
-    st.header("Select Use Case")
-    
-    # Define possible use cases for image transcription
-    use_cases = [
-        "Transcribing Typed Text",
-        "Transcribing Handwritten Text",
-        "Transcribing Forms",
-        "Complicated Document QA",
-        "Unstructured Information -> JSON",
-        "User Defined"
-    ]
-    
-    # Dropdown menu for selecting a use case
-    selected_use_case = st.selectbox("Choose a Use Case:", use_cases)
-    
-    # Instructions for each use case
-    instructions = {
-        "Transcribing Typed Text": "Transcribe this typed text.",
-        "Transcribing Handwritten Text": "Transcribe this handwritten note.",
-        "Transcribing Forms": "Transcribe this form exactly.",
-        "Complicated Document QA": "Answer the questions based on this document.",
-        "Unstructured Information -> JSON": "Convert the content of this document to structured JSON.",
-        "User Defined": ""
-    }
-    
-    # Fetch available models dynamically and select one
-    available_models = get_available_models()
-    selected_model = st.selectbox("Choose a model:", available_models)
-    
-    # Option to use either an uploaded image or a default image
-    image_selection = st.radio("Choose an image:", ("Use uploaded image", "Use default image"))
-    
-    # Allow user to input a custom prompt if "User Defined" is selected
-    if selected_use_case == "User Defined":
-        instruction_text = st.text_area("Enter your prompt:", "")
-    else:
-        instruction_text = instructions[selected_use_case]
-    
-    # Variable to hold the selected image path
-    image_path = None
-    
-    if image_selection == "Use uploaded image":
-        # Directory containing uploaded images
-        uploaded_images_dir = "uploaded_images"
-        images_list = os.listdir(uploaded_images_dir)
+    # Use two columns for layout: image on the left (1/3), response on the right (2/3)
+    col1, col2 = st.columns([1, 2])
         
-        # Let user select from uploaded images if available
-        if images_list:
-            image_name = st.selectbox("Select an uploaded image:", images_list)
-            image_path = os.path.join(uploaded_images_dir, image_name)
-        else:
-            st.warning("No uploaded images found. Please upload an image in the 'Upload Image' tab.")
-    else:
-        # Placeholder for default images based on use case
-        default_images = {
-            "Transcribing Typed Text": "./data/examples/ex1-stack_overflow.png",
-            "Transcribing Handwritten Text": "./data/examples/ex2-school_notes.png",
-            "Transcribing Forms": "./data/examples/ex3-vehicle_form.jpeg",
-            "Complicated Document QA": "./data/examples/ex4-doc_qa.png",
-            "Unstructured Information -> JSON": "./data/examples/ex5-org_chart.jpeg"
+    with col1:
+        st.header("Select Image Analysis Use Case")
+        
+        # Define possible use cases for image transcription
+        use_cases = [
+            "Transcribing Typed Text",
+            "Transcribing Handwritten Text",
+            "Transcribing Forms",
+            "Complicated Document QA",
+            "Unstructured Information -> JSON",
+            "User Defined"
+        ]
+        
+        # Dropdown menu for selecting a use case
+        selected_use_case = st.selectbox("Choose a Use Case:", use_cases)
+        
+        # Instructions for each use case
+        instructions = {
+            "Transcribing Typed Text": "Transcribe this typed text.",
+            "Transcribing Handwritten Text": "Transcribe this handwritten note.",
+            "Transcribing Forms": "Transcribe this form exactly.",
+            "Complicated Document QA": "Answer the questions based on this document.",
+            "Unstructured Information -> JSON": "Convert the content of this document to structured JSON.",
+            "User Defined": ""
         }
-        image_path = default_images.get(selected_use_case)
-        
-        # Display the default image with reduced size
-        st.image(image_path, caption="Default Image", width=200)
-    
-    # Process the request if an image and prompt are provided
-    if image_path and instruction_text and st.button("Process with Claude"):
-        # Send the request to Claude and display the response
-        response = send_claude_request(image_path, instruction_text, selected_model)
-        st.subheader("Claude's Response:")
-        st.write(response)
 
+        # Descriptions for each use case
+        use_case_descriptions = {
+            "Transcribing Typed Text": "Extract text from typed documents like printouts or scanned PDFs.",
+            "Transcribing Handwritten Text": "Extract text from handwritten notes, making them searchable or editable.",
+            "Transcribing Forms": "Extract data from structured forms while preserving its organization.",
+            "Complicated Document QA": "Answer questions based on the contents of a complex document.",
+            "Unstructured Information -> JSON": "Convert unstructured document content into a structured JSON format.",
+            "User Defined": "Create your own prompt for processing the image with a custom instruction."
+        }
+
+        # Display the description below the use case dropdown
+        st.markdown(f"**Description:** {use_case_descriptions[selected_use_case]}")
+        
+        # Fetch available models dynamically and select one
+        available_models = get_available_models()
+        selected_model = st.selectbox("Choose a model:", available_models)
+        
+        # Check if additional context is needed for the "Complicated Document QA"
+        additional_context = ""
+        if selected_use_case == "Complicated Document QA":
+            additional_context = st.text_area("Enter question you would like to know about document:", "")
+        
+        # Append additional context for "Complicated Document QA" if provided
+        if additional_context:
+            instruction_text += f" {additional_context}"
+        
+        # Option to use either an uploaded image or an example image, excluding "User Defined" case
+        if selected_use_case != "User Defined":
+            image_selection = st.radio("Choose an image:", ("Use uploaded image", "Use example image"))
+        else:
+            image_selection = "Use uploaded image"  # Force image selection to be only "Use uploaded image"
+
+        # Allow user to input a custom prompt if "User Defined" is selected
+        if selected_use_case == "User Defined":
+            instruction_text = st.text_area("Enter your prompt:", "")
+        else:
+            # Base instruction for other use cases
+            instruction_text = instructions[selected_use_case]
+            # Append additional context for "Complicated Document QA" if provided
+            if additional_context:
+                instruction_text += f" {additional_context}"
+
+        # Variable to hold the selected image path
+        image_path = None
+        
+        if image_selection == "Use uploaded image":
+            # Directory containing uploaded images
+            uploaded_images_dir = "/home/cdsw/data"
+            
+            # Get only image files from the directory
+            images_list = get_image_files(uploaded_images_dir)
+            
+            # Let user select from uploaded images if available
+            if images_list:
+                image_name = st.selectbox("Select an uploaded image:", images_list)
+                image_path = os.path.join(uploaded_images_dir, image_name)
+            else:
+                st.warning("No uploaded images found. Please upload an image in the 'Upload Image' tab.")
+        else:
+            # Placeholder for default images based on use case
+            default_images = {
+                "Transcribing Typed Text": "./data/examples/ex1-stack_overflow.png",
+                "Transcribing Handwritten Text": "./data/examples/ex2-school_notes.png",
+                "Transcribing Forms": "./data/examples/ex3-vehicle_form.jpeg",
+                "Complicated Document QA": "./data/examples/ex4-doc_qa.jpeg",
+                "Unstructured Information -> JSON": "./data/examples/ex5-org_chart.jpeg"
+            }
+            image_path = default_images.get(selected_use_case)
+    
+            # Display image with the option to enlarge and shrink
+            if image_path:
+                display_image_with_enlarge_option(image_path, caption="Selected Image")
+        
+        # Placeholder for response
+        response=""
+        
+        # Process the request if an image and prompt are provided
+        if image_path and instruction_text and st.button("Process with Claude"):
+            # Send the request to Claude and display the response
+            response = send_claude_request(image_path, instruction_text, selected_model)
+
+            
+    with col2:
+        # Display the response in a well-formatted block
+        st.header("Claude's Response:")
+        st.code(response, language="markdown")
+
+        
 # Image Upload Tab - Tab 2
 with tab2:
-    st.header("Upload Image")
+    st.header("Manage Uploaded Images")
     
     # Directory for saving uploaded images
-    upload_directory = "uploaded_images"
+    upload_directory = "/home/cdsw/data"
     os.makedirs(upload_directory, exist_ok=True)
     
+    # Initialize session state to track uploaded file status
+    if 'file_uploaded' not in st.session_state:
+        st.session_state['file_uploaded'] = False
+
     # File uploader allowing only specific image types
-    uploaded_file = st.file_uploader("Upload an image for transcription", type=["png", "jpg", "jpeg"])
-    
-    if uploaded_file:
+    uploaded_file = st.file_uploader("Upload an image for transcription", type=["png", "jpg", "jpeg", "gif", "webp"])
+
+    # Save the uploaded image without rerunning the app
+    if uploaded_file and not st.session_state['file_uploaded']:
         # Save the uploaded image to the directory
         file_path = os.path.join(upload_directory, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success(f"Image saved to {file_path}")
+        st.session_state['file_uploaded'] = True  # Mark as uploaded in session state
+
+    # Reset the `file_uploaded` state if no file is selected
+    if not uploaded_file:
+        st.session_state['file_uploaded'] = False
+
+    # Create two columns: one for listing images and action buttons, and one for rendering selected image
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("Uploaded Images")
         
-        # Display the uploaded image with reduced size
-        st.image(file_path, caption="Uploaded Image", width=200)
+        # Get a list of image files from the directory
+        image_files = get_image_files(upload_directory)
         
-        # Rerun the app to update the "Use Case" tab
-        st.experimental_rerun()
+        # Check if there are any images in the folder
+        if image_files:
+            # Store the selected image name in session state
+            if 'selected_image' not in st.session_state:
+                st.session_state['selected_image'] = None
+            
+            # Loop through each image and display its name with "View" and "Delete" buttons
+            for image_file in image_files:
+                image_path = os.path.join(upload_directory, image_file)
+                
+                # Create keys for each button
+                view_button_key = f"view_{image_file}"
+                delete_button_key = f"delete_{image_file}"
+                
+                col_img_name, col_view, col_delete = st.columns([3, 1, 1])
+                
+                with col_img_name:
+                    st.text(image_file)
+                
+                with col_view:
+                    # "View" button to display the image in the right column
+                    if st.button("View", key=view_button_key):
+                        st.session_state['selected_image'] = image_path
+                
+                with col_delete:
+                    # "Delete" button to remove the image from the directory
+                    if st.button("Delete", key=delete_button_key):
+                        os.remove(image_path)
+                        st.success(f"{image_file} has been deleted.")
+                        st.rerun()  # Refresh the UI after deletion
+        else:
+            st.info("No images found in the directory.")
+    
+    with col2:
+        # Render the selected image in the right column
+        if st.session_state['selected_image']:
+            st.subheader("Selected Image")
+            st.image(st.session_state['selected_image'], caption="Preview", use_column_width=True)
+
 
 # About Tab - Tab 3
 with tab3:
     st.header("About")
-    st.write(
-        '''
-        This application allows users to transcribe and extract information from various types of documents using the Claude model by Anthropics.
-        The functionality includes transcribing typed or handwritten text, extracting data from forms, performing QA on complex documents, and converting unstructured information into JSON.
-        Use the tabs to explore different use cases, upload images for processing, and learn more about the app.
-        '''
-    )
+
+    # Use two columns to place text and GIF side by side
+    col1, col2 = st.columns([3, 1])  # Adjust column width ratios as needed
+
+    with col1:
+        # Section 1: Original Overview of the App
+        st.subheader("Exploring the Power of Claude")
+        st.write(
+            '''
+            This application allows users to transcribe and extract information from various types of documents using the Claude model by Anthropic.
+            The functionality includes transcribing typed or handwritten text, extracting data from forms, performing QA on complex documents, and converting unstructured information into JSON.
+            '''
+        )
+
+        # Section 2: Advanced Capabilities
+        st.subheader("Unlocking Claude's Potential")
+        st.write(
+            '''
+            - **Advanced Reasoning**: Claude can perform complex cognitive tasks that go beyond simple pattern recognition or text generation.
+            
+            - **Vision Analysis**: Transcribe and analyze almost any static image, from handwritten notes and graphs to photographs.
+            
+            - **Code Generation**: Start creating websites in HTML and CSS, turning images into structured JSON data, or debugging complex code bases.
+            
+            - **Multilingual Processing**: Translate between various languages in real-time, practice grammar, or create multi-lingual content.
+            '''
+        )
+        
+        # Section 3: Model Selection Guide
+        st.subheader("Choose Your Claude: A Model for Every Task")
+        st.write(
+            '''
+            - **Light & Fast: Haiku**: Anthropic's fastest model that can execute lightweight actions, with industry-leading speed. Ideal for quick tasks where time is of the essence.
+            
+            - **Hard-working: Sonnet**: The best combination of performance and speed for efficient, high-throughput tasks. Strikes a balance between speed and power, making it suitable for most general-purpose tasks.
+            
+            - **Powerful: Opus**: Anthropic's highest-performing model, capable of handling complex analysis, longer tasks with many steps, and higher-order math and coding tasks. Best for situations where accuracy and depth are prioritized over speed.
+            '''
+        )
+
+    with col2:
+        # Display the GIF on the right side
+        gif_path = "/home/cdsw/assets/claude.gif"  # Replace with the correct path to claude.gif
+        st.image(gif_path, use_column_width=True)
+
