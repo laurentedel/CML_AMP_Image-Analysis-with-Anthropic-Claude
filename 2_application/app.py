@@ -144,30 +144,25 @@ with tab1:
         available_models = get_available_models()
         selected_model = st.selectbox("Choose a model:", available_models)
         
-        # Check if additional context is needed for the "Complicated Document QA"
-        additional_context = ""
-        if selected_use_case == "Complicated Document QA":
-            additional_context = st.text_area("Enter question you would like to know about document:", "")
-        
-        # Append additional context for "Complicated Document QA" if provided
-        if additional_context:
-            instruction_text += f" {additional_context}"
+        # Initialize the base instruction for all use cases except "User Defined"
+        if selected_use_case == "User Defined":
+            instruction_text = st.text_area("Enter your prompt:", "")
+        else:
+            instruction_text = instructions[selected_use_case]
+            
+            # Check if additional context is needed for the "Complicated Document QA"
+            if selected_use_case == "Complicated Document QA":
+                additional_context = st.text_area("Enter question you would like to know about document:", "")
+                
+                # Append additional context for "Complicated Document QA" if provided
+                if additional_context:
+                    instruction_text += f" {additional_context}"
         
         # Option to use either an uploaded image or an example image, excluding "User Defined" case
         if selected_use_case != "User Defined":
             image_selection = st.radio("Choose an image:", ("Use uploaded image", "Use example image"))
         else:
             image_selection = "Use uploaded image"  # Force image selection to be only "Use uploaded image"
-
-        # Allow user to input a custom prompt if "User Defined" is selected
-        if selected_use_case == "User Defined":
-            instruction_text = st.text_area("Enter your prompt:", "")
-        else:
-            # Base instruction for other use cases
-            instruction_text = instructions[selected_use_case]
-            # Append additional context for "Complicated Document QA" if provided
-            if additional_context:
-                instruction_text += f" {additional_context}"
 
         # Variable to hold the selected image path
         image_path = None
@@ -195,7 +190,7 @@ with tab1:
                 "Unstructured Information -> JSON": "./data/examples/ex5-org_chart.jpeg"
             }
             image_path = default_images.get(selected_use_case)
-    
+        
             # Display image with the option to enlarge and shrink
             if image_path:
                 display_image_with_enlarge_option(image_path, caption="Selected Image")
@@ -339,4 +334,3 @@ with tab3:
         # Display the GIF on the right side
         gif_path = "/home/cdsw/assets/claude.gif"  # Replace with the correct path to claude.gif
         st.image(gif_path, use_column_width=True)
-
