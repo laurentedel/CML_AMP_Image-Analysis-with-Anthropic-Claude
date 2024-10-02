@@ -1,7 +1,7 @@
 # Image Analysis with Anthropic's Claude LLM
 This Applied Machine Learning Prototype ("AMP") allows users to perform transcription and information extraction on images using Anthropic Claude models. The app covers a variety of use cases, including text extraction, complex document question-answering, and converting unstructured content into structured formats like JSON. The advantage of using Claude 3 over traditional OCR systems is that you can specify exactly what you want to transcribe due to Claude 3's advanced reasoning capabilities.
 
-!()[/assets/anthropic-logo.svg]
+!()[/assets/anthropic-logo.png]
 
 ## Use Cases Solved With Anthropic Vision Models
 
