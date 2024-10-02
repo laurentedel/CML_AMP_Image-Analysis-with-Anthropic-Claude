@@ -17,7 +17,7 @@ This Applied Machine Learning Prototype ("AMP") allows users to perform transcri
 
 5. **Unstructured Information → JSON:** Converts unstructured document content into a structured JSON format, ideal for turning reports or diagrams into data.
 
-6. **User Defined:** Provides flexibility for custom prompts to process images, catering to advanced or unique use cases.
+6. **User Defined Prompts:** Provides flexibility for custom prompts to process images, catering to advanced or unique use cases.
 
 
 ## Choose Your Claude: A Model for Every Task
@@ -37,6 +37,35 @@ claude-3-haiku-20240307
 
 **Opus:** Anthropic's highest-performing model, capable of handling complex analysis, longer tasks with many steps, and higher-order math and coding tasks. Best for situations where accuracy and depth are prioritized over speed.
 
+## Using the Application
+
+#### 1. Transcribing Typed Text
+
+![](/assets/screenshots/transcribing-typed-text.png)
+
+#### 2. Transcribing Handwritten Text
+
+![](/assets/screenshots/transcribing-handwritten-text.png)
+
+#### 3. Transcibing Forms
+
+![](/assets/screenshots/transcribing-forms.png)
+
+#### 4. Complicated Document QA
+
+![](/assets/screenshots/complicated-doc-qa.png)
+
+#### 5. Unstructured Information to JSONs
+
+![](/assets/screenshots/unstructured-info-to-json.png)
+
+#### 6. User Defined Prompts
+
+![](/assets/screenshots/user-defined.png)
+
+#### 7. Upload Photos
+
+![](/assets/screenshots/upload-images.png)
 
 
 ## Deployment
